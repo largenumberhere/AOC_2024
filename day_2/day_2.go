@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func testFloorStepSize(list []int) bool {
+func isFloorStepSizeAllowed(list []int) bool {
 	prev := list[0]
 
 	for i, item := range list {
@@ -93,77 +93,13 @@ func countStagnating(list []int) int {
 	return stagnating_count
 }
 
-func firstStagnating(list []int) int {
-	prev := list[0]
-
-	for i, item := range list {
-		if i == 0 {
-			continue
-		}
-
-		difference := item - prev
-
-		if difference == 0 {
-			return i
-		}
-
-		prev = item
-	}
-
-	return -1
-}
-
-func firstDecreasing(list []int) int {
-	prev := list[0]
-
-	for i, item := range list {
-		if i == 0 {
-			continue
-		}
-
-		difference := item - prev
-
-		if difference < 0 {
-			return i
-		}
-
-		prev = item
-	}
-
-	return -1
-}
-
-func firstIncreasing(list []int) int {
-	prev := list[0]
-
-	for i, item := range list {
-		if i == 0 {
-			continue
-		}
-		difference := item - prev
-
-		if difference > 0 {
-			return i
-		}
-
-		prev = item
-	}
-
-	return -1
-}
-
-// func testFloorsAgain(list []int) bool {
-// 	// find the offender
-// 	for i := 0; i < len(list); i++ {
-
-// 	}
-// }
-
+// check if the floors are only decreasing or increasing
 func testFloorDirection(list []int) bool {
 	ascending_count := countIncreasing(list)
 	descending_count := countDecreasing(list)
 	stagnating_count := countStagnating(list)
 
+	// does not handle list size of zero correctly but that didn't seem to matter
 	is_ascending_or_descending := (ascending_count == 0 || descending_count == 0)
 	is_stagnating := stagnating_count > 0
 
@@ -174,8 +110,9 @@ func testFloorDirection(list []int) bool {
 	return false
 }
 
+// validate a single report
 func isReportValid(list []int) bool {
-	if !testFloorDirection(list) || !testFloorStepSize(list) {
+	if !testFloorDirection(list) || !isFloorStepSizeAllowed(list) {
 		return false
 	}
 
@@ -183,34 +120,35 @@ func isReportValid(list []int) bool {
 }
 
 // https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
-// destructively modifies the input and returns the result
+// destructively modifies the input and returns a new array as a result
 func remove(slice []int, s int) []int {
 	return append(slice[:s], slice[s+1:]...)
 }
 
-func floorsAreAllowed(list []int) bool {
+// determine if report has a combinartion of reports that is considered 'safe'
+func isFloorsSafe(list []int, dampener_enabled bool) bool {
 	if isReportValid(list) {
 		return true
 	}
 
-	// retry with a floor removed
-	for i := 0; i < len(list); i++ {
-		list2 := make([]int, len(list))
-		copy(list2, list)
+	if dampener_enabled {
+		// brute force each combination with one less floor
+		for i := 0; i < len(list); i++ {
+			list2 := make([]int, len(list))
+			copy(list2, list)
 
-		list2 = remove(list2, i)
+			list2 = remove(list2, i)
 
-		if isReportValid(list2) {
-			// fmt.Println("2nd try was safe ", list)
-			return true
-		} else {
-			// fmt.Println("2nd try was unsafe ", list, " -> ", list2)
+			if isReportValid(list2) {
+				return true
+			}
 		}
 	}
 
 	return false
 }
 
+// turn the inputs into an array of reports. Each report contains several values
 func parse_reports(file string) [][]int {
 	each_line := strings.Split(file, "\n")
 
@@ -218,8 +156,6 @@ func parse_reports(file string) [][]int {
 	var all_reports [][]int
 
 	for _, line := range each_line {
-		fmt.Println(line)
-
 		var report_summary []int
 
 		reports := strings.Split(line, " ")
@@ -234,8 +170,6 @@ func parse_reports(file string) [][]int {
 				log.Fatal(err)
 			}
 
-			fmt.Println(number)
-
 			report_summary = append(report_summary, number)
 		}
 
@@ -246,12 +180,13 @@ func parse_reports(file string) [][]int {
 
 	}
 
-	fmt.Println("reports: ", all_reports)
-
 	return all_reports
 }
 
 func main() {
+	is_part_2 := true
+
+	// read input
 	file_contents, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -262,15 +197,13 @@ func main() {
 	// process the reports
 	all_reports := parse_reports(lines)
 
+	// calculate result
 	safe_count := 0
 
 	for _, report := range all_reports {
-		report_safe := floorsAreAllowed(report)
+		report_safe := isFloorsSafe(report, is_part_2)
 
-		if !report_safe {
-			fmt.Println("report is unsafe ", report)
-		} else {
-			fmt.Println("report is safe ", report)
+		if report_safe {
 			safe_count += 1
 		}
 	}
@@ -278,6 +211,7 @@ func main() {
 	fmt.Println("safe count: ", safe_count)
 }
 
+// the 'absolute magnitude' of the input
 func abs(value int) int {
 	if value < 0 {
 		value = -value
