@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func isStepSizeAllowed(list []int) bool {
+func testFloorStepSize(list []int) bool {
 	prev := list[0]
 
 	for i, item := range list {
@@ -28,39 +28,184 @@ func isStepSizeAllowed(list []int) bool {
 	return true
 }
 
-func isDecendingOrAscending(list []int) bool {
+func countIncreasing(list []int) int {
 	prev := list[0]
 
-	var ascending int
-	var descending int
-	var stagnating int
+	ascending_count := 0
 
 	for i, item := range list {
-		// skip first item
 		if i == 0 {
 			continue
 		}
+		difference := item - prev
 
-		if item-prev < 0 {
-			ascending += 1
-		} else if item-prev > 0 {
-			descending += 1
-		} else {
-			stagnating += 1
+		if difference > 0 {
+			ascending_count += 1
 		}
 
 		prev = item
 	}
 
-	is_ascending_or_descending := ascending == 0 || descending == 0
-	is_stagnating := stagnating > 0
+	return ascending_count
+}
 
-	if is_stagnating {
+func countDecreasing(list []int) int {
+	prev := list[0]
+
+	descending_count := 0
+
+	for i, item := range list {
+		if i == 0 {
+			continue
+		}
+
+		difference := item - prev
+
+		if difference < 0 {
+			descending_count += 1
+		}
+
+		prev = item
+	}
+
+	return descending_count
+}
+
+func countStagnating(list []int) int {
+	prev := list[0]
+
+	stagnating_count := 0
+
+	for i, item := range list {
+		if i == 0 {
+			continue
+		}
+
+		difference := item - prev
+
+		if difference == 0 {
+			stagnating_count += 1
+		}
+
+		prev = item
+	}
+
+	return stagnating_count
+}
+
+func firstStagnating(list []int) int {
+	prev := list[0]
+
+	for i, item := range list {
+		if i == 0 {
+			continue
+		}
+
+		difference := item - prev
+
+		if difference == 0 {
+			return i
+		}
+
+		prev = item
+	}
+
+	return -1
+}
+
+func firstDecreasing(list []int) int {
+	prev := list[0]
+
+	for i, item := range list {
+		if i == 0 {
+			continue
+		}
+
+		difference := item - prev
+
+		if difference < 0 {
+			return i
+		}
+
+		prev = item
+	}
+
+	return -1
+}
+
+func firstIncreasing(list []int) int {
+	prev := list[0]
+
+	for i, item := range list {
+		if i == 0 {
+			continue
+		}
+		difference := item - prev
+
+		if difference > 0 {
+			return i
+		}
+
+		prev = item
+	}
+
+	return -1
+}
+
+// func testFloorsAgain(list []int) bool {
+// 	// find the offender
+// 	for i := 0; i < len(list); i++ {
+
+// 	}
+// }
+
+func testFloorDirection(list []int) bool {
+	ascending_count := countIncreasing(list)
+	descending_count := countDecreasing(list)
+	stagnating_count := countStagnating(list)
+
+	is_ascending_or_descending := (ascending_count == 0 || descending_count == 0)
+	is_stagnating := stagnating_count > 0
+
+	if !is_stagnating && is_ascending_or_descending {
+		return true
+	}
+
+	return false
+}
+
+func isReportValid(list []int) bool {
+	if !testFloorDirection(list) || !testFloorStepSize(list) {
 		return false
 	}
 
-	if is_ascending_or_descending {
+	return true
+}
+
+// https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
+// destructively modifies the input and returns the result
+func remove(slice []int, s int) []int {
+	return append(slice[:s], slice[s+1:]...)
+}
+
+func floorsAreAllowed(list []int) bool {
+	if isReportValid(list) {
 		return true
+	}
+
+	// retry with a floor removed
+	for i := 0; i < len(list); i++ {
+		list2 := make([]int, len(list))
+		copy(list2, list)
+
+		list2 = remove(list2, i)
+
+		if isReportValid(list2) {
+			// fmt.Println("2nd try was safe ", list)
+			return true
+		} else {
+			// fmt.Println("2nd try was unsafe ", list, " -> ", list2)
+		}
 	}
 
 	return false
@@ -120,10 +265,9 @@ func main() {
 	safe_count := 0
 
 	for _, report := range all_reports {
-		is_changing := isDecendingOrAscending(report)
-		is_valid_steps := isStepSizeAllowed(report)
+		report_safe := floorsAreAllowed(report)
 
-		if !is_changing || !is_valid_steps {
+		if !report_safe {
 			fmt.Println("report is unsafe ", report)
 		} else {
 			fmt.Println("report is safe ", report)
