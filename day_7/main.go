@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 )
@@ -11,6 +13,23 @@ import (
 type Equation struct {
 	inputs []int
 	output int
+}
+
+var cache map[int][]string
+
+func generateStringCached(n int) []string {
+	if cache == nil {
+		cache = make(map[int][]string)
+	}
+
+	if cache[n] != nil {
+		return cache[n]
+	} else {
+
+		res := generateString(n, "")
+		cache[n] = res
+		return res
+	}
 }
 
 // chat gpt code :(
@@ -31,7 +50,7 @@ func generateString(n int, current string) []string {
 }
 
 func generateStrings(n int) []string {
-	return generateString(n, "")
+	return generateStringCached(n)
 }
 
 // func cat(one string, two string) string {
@@ -124,10 +143,10 @@ func parseEquations(file_contents string) []Equation {
 			inputs = append(inputs, num_int)
 		}
 
-		for _, in := range inputs {
-			fmt.Println("input:", in)
-		}
-		fmt.Println("output:", output)
+		// for _, in := range inputs {
+		// 	fmt.Println("input:", in)
+		// }
+		// fmt.Println("output:", output)
 
 		equations = append(equations, Equation{
 			inputs: inputs,
@@ -138,7 +157,19 @@ func parseEquations(file_contents string) []Equation {
 	return equations
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	bytes, err := os.ReadFile("input.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -162,4 +193,5 @@ func main() {
 	}
 
 	fmt.Println("tally: ", tally)
+
 }
