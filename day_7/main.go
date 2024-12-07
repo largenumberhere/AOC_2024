@@ -25,12 +25,41 @@ func generateString(n int, current string) []string {
 	var result []string
 	result = append(result, generateString(n, current+"*")...)
 	result = append(result, generateString(n, current+"+")...)
+	result = append(result, generateString(n, current+"|")...)
 
 	return result
 }
 
 func generateStrings(n int) []string {
 	return generateString(n, "")
+}
+
+// func cat(one string, two string) string {
+// 	var b bytes.Buffer
+// 	b.WriteString(one)
+// 	b.WriteString(two)
+
+// 	return b.String()
+// }
+
+func catInt(left int, right int) int {
+	// left2 := strconv.Itoa(left)
+	// right2 := strconv.Itoa(right)
+
+	// all := cat(left2, right2)
+
+	// out, err := strconv.Atoi(all)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// implementation based on https://stackoverflow.com/questions/12700497/how-to-concatenate-two-integers-in-c
+	pow := 10
+	for right >= pow {
+		pow *= 10
+	}
+
+	return left*pow + right
 }
 
 func solveEquation(e Equation) bool {
@@ -42,6 +71,8 @@ func solveEquation(e Equation) bool {
 				sum *= e.inputs[i]
 			} else if symbol == '+' {
 				sum += e.inputs[i]
+			} else if symbol == '|' {
+				sum = catInt(sum, e.inputs[i])
 			}
 		}
 
