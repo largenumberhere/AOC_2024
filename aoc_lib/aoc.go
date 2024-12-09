@@ -7,6 +7,8 @@ import (
 	"unicode"
 )
 
+// mroww
+
 /*
  *	Read the aoc file and remove any spurious whitespace
  */
