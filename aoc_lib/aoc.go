@@ -59,7 +59,8 @@ func PrintRunes(runes [][]rune) {
 }
 
 /*
- *	Parse an aoc file into a 2d array of runes
+*	Parse an aoc file into a 2d array of runes
+*
  */
 func GrabRunesArray(path string) ([][]rune, error) {
 	var lines_runes [][]rune
