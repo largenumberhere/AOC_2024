@@ -108,6 +108,6 @@ func MakeRunes(rows int, columns int, initialized_value rune) [][]rune {
 
 // https://stackoverflow.com/questions/37334119/how-to-delete-an-element-from-a-slice-in-golang
 // destructively modifies the input and returns a new array as a result
-func Remove(slice []int, s int) []int {
+func Remove[T any](slice []T, s int) []T {
 	return append(slice[:s], slice[s+1:]...)
 }
