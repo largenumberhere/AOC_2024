@@ -114,3 +114,68 @@ func MakeRunes(rows int, columns int, initialized_value rune) [][]rune {
 func Remove[T any](slice []T, s int) []T {
 	return append(slice[:s], slice[s+1:]...)
 }
+
+type Point2D struct {
+	x int
+	y int
+}
+
+type Direction rune
+
+const (
+	DirectionUp    Direction = '^'
+	DirectionRight Direction = '>'
+	DirectionDown  Direction = 'v'
+	DirectionLeft  Direction = '<'
+)
+
+func (direction Direction) DirectionOffset() Point2D {
+	robot_pos := Point2D{0, 0}
+	switch direction {
+	case DirectionUp:
+		robot_pos.y -= 1
+	case DirectionRight:
+		robot_pos.x += 1
+	case DirectionDown:
+		robot_pos.y += 1
+	case DirectionLeft:
+		robot_pos.x -= 1
+	}
+
+	return robot_pos
+}
+
+func (a Point2D) AddComponents(b Point2D) Point2D {
+	return Point2D{x: a.x + b.x, y: a.y + b.y}
+}
+
+func (a Point2D) IsWithin(min Point2D, max Point2D) bool {
+	if a.x < min.x {
+		return false
+	}
+
+	if a.y < min.y {
+		return false
+	}
+
+	if a.x > max.x {
+		return false
+	}
+
+	if a.y > max.y {
+		return false
+	}
+
+	return true
+}
+
+func RunesBounds(field [][]rune) (Point2D, Point2D) {
+	min := Point2D{x: 0, y: 0}
+	max := Point2D{x: len(field), y: len(field[0])}
+
+	return min, max
+}
+
+func RunesAt(field [][]rune, pos Point2D) *rune {
+	return &(field[pos.y][pos.x])
+}
