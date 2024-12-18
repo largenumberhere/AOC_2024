@@ -7,8 +7,8 @@ import (
 	"unicode"
 )
 
-const Version = "v0.0.4"
-const VersionCount = 4 // number increases on every version change
+const Version = "v0.0.5"
+const VersionCount = 5 // number increases on every version change
 
 // mroww
 
@@ -180,13 +180,47 @@ func (a Point2D) IsWithin(min Point2D, max Point2D) bool {
 	return true
 }
 
+func MakePoint2DUninit() Point2D {
+	return Point2D{x: -1, y: -1}
+}
+
+func (point *Point2D) IsPointUninit() bool {
+	uninit := MakePoint2DUninit()
+
+	return (*point) == uninit
+}
+
 func RunesBounds(field [][]rune) (Point2D, Point2D) {
 	min := Point2D{x: 0, y: 0}
-	max := Point2D{x: len(field), y: len(field[0])}
+	var max Point2D = MakePoint2DUninit()
+	if len(field) == 0 {
+		max = Point2D{x: len(field), y: 0}
+	} else {
+
+		max = Point2D{x: len(field), y: len(field[0])}
+	}
 
 	return min, max
 }
 
 func RunesAt(field [][]rune, pos Point2D) *rune {
 	return &(field[pos.y][pos.x])
+}
+
+func (pos Point2D) WrapAround(map_bounds Point2D) Point2D {
+	for pos.x < 0 {
+		pos.x += map_bounds.x
+	}
+	for pos.y < 0 {
+		pos.y += map_bounds.y
+	}
+
+	for pos.x >= map_bounds.x {
+		pos.x -= map_bounds.x
+	}
+	for pos.y >= map_bounds.y {
+		pos.y -= map_bounds.y
+	}
+
+	return pos
 }
