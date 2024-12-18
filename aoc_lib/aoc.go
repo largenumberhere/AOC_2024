@@ -7,8 +7,8 @@ import (
 	"unicode"
 )
 
-const Version = "v0.0.2"
-const VersionCount = 2 // number increases on every version change
+const Version = "v0.0.3"
+const VersionCount = 3 // number increases on every version change
 
 // mroww
 
