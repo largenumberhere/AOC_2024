@@ -120,6 +120,17 @@ type Point2D struct {
 	y int
 }
 
+func (point *Point2D) GetXY() (int, int) {
+	return point.x, point.y
+}
+
+func MakePoint2D(x int, y int) Point2D {
+	return Point2D{
+		x: x,
+		y: y,
+	}
+}
+
 type Direction rune
 
 const (
