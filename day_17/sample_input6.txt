@@ -1,0 +1,8 @@
+Register A: 0
+Register B: 2024
+Register C: 43690
+
+Program: 4,0
+
+
+//If register B contains 2024 and register C contains 43690, the program 4,0 would set register B to 44354

@@ -1,0 +1,7 @@
+Register A: 0
+Register B: 0
+Register C: 9
+
+Program: 2,6
+
+// "If register C contains 9, the program 2,6 would set register B to 1."
