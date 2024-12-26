@@ -80,7 +80,7 @@ func createUpdateStoneRoutine(stone *string, id int, output chan UpdateResult) {
 	output <- updateStoneConcurrent(stone, id)
 }
 
-func updateStones(stones *[]string) *[]string {
+func updateStones(stones *[]string) {
 	outputs := make(chan UpdateResult, len(*stones))
 
 	for i := len(*stones) - 1; i >= 0; i-- {
@@ -103,8 +103,6 @@ func updateStones(stones *[]string) *[]string {
 	}
 
 	// fmt.Println("result ", *stones)
-
-	return stones
 }
 
 func main() {
@@ -118,9 +116,8 @@ func main() {
 	stones := strings.Split(input, " ")
 
 	fmt.Println(stones)
-	stones_ptr := &stones
 	for i := 0; i < 40; i++ {
-		stones_ptr = updateStones(stones_ptr)
+		updateStones(&stones)
 		fmt.Println("iteration ", i)
 	}
 
