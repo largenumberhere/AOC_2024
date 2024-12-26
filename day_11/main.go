@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"log"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	libaoc "github.com/largenumberhere/AOC_2024/aoc_lib"
 )
-
-type Stones []string
 
 func removeLeadingZeros(integer *string) {
 	zeros := 0
@@ -82,17 +82,56 @@ func createUpdateStoneRoutine(stone *string, id int, output chan UpdateResult) {
 	output <- updateStoneConcurrent(stone, id)
 }
 
-func updateStones(stones *Stones) *Stones {
-	outputs := make(chan UpdateResult, len(*stones))
+func processStones(stones *[]string, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
+	for i := 0; i < nStonesToProcess; i++ {
+		index := startIndex + i
 
-	for i := len(*stones) - 1; i >= 0; i-- {
-		go createUpdateStoneRoutine(&(*stones)[i], i, outputs)
+		var out1 string
+		var out2 string
+		used_out2 := updateStone(&(*stones)[index], &out1, &out2)
+		if used_out2 {
+			(*results)[index] = UpdateResult{out1, out2, index}
+		} else {
+			(*results)[index] = UpdateResult{out1, "", index}
+		}
 	}
 
+	wg.Done()
+}
+
+func updateStones(stones *[]string) {
+	outputs := make(chan UpdateResult, len(*stones))
 	results := make([]UpdateResult, len(*stones))
-	for i := 0; i < len(*stones); i++ {
-		out := <-outputs
-		results[out.id] = out
+
+	numCores := runtime.NumCPU()
+
+	// If we would only start 1 goroutine per core anyway, use the old method
+	if len(*stones) < numCores {
+		for i := len(*stones) - 1; i >= 0; i-- {
+			go createUpdateStoneRoutine(&(*stones)[i], i, outputs)
+		}
+
+		for i := 0; i < len(*stones); i++ {
+			out := <-outputs
+			results[out.id] = out
+		}
+	} else { // Otherwise, split the work up into N goroutines where N is the core count of your CPU
+		var wg sync.WaitGroup
+
+		nStonesToProcessPerGoroutine := len(*stones) / numCores
+		startIndex := 0
+		for i := 0; i < numCores; i++ {
+			nStonesToProcess := nStonesToProcessPerGoroutine
+			if i == numCores-1 { // At the last iteration, process all remaining stones
+				nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine*(numCores-1)
+			}
+
+			wg.Add(1)
+			go processStones(stones, startIndex, nStonesToProcess, &results, &wg)
+			startIndex += nStonesToProcess
+		}
+
+		wg.Wait()
 	}
 
 	slices.SortFunc(results, func(a UpdateResult, b UpdateResult) int { return a.id - b.id })
@@ -100,29 +139,26 @@ func updateStones(stones *Stones) *Stones {
 	for i := len(*stones) - 1; i >= 0; i-- {
 		(*stones)[i] = results[i].stone1
 		if results[i].new_stone2 != "" {
-			*stones = slices.Insert(*stones, i+1, results[i].new_stone2)
+			*stones = append(*stones, results[i].new_stone2)
 		}
 	}
 
 	// fmt.Println("result ", *stones)
-
-	return stones
 }
 
 func main() {
 	// defer profile.Start().Stop()
-	input, err := libaoc.GrabInput("input.txt")
+	input, err := libaoc.GrabInput("sample_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	stones := Stones(strings.Split(input, " "))
+	stones := strings.Split(input, " ")
 
 	fmt.Println(stones)
-	stones_ptr := &stones
-	for i := 0; i < 75; i++ {
-		stones_ptr = updateStones(stones_ptr)
+	for i := 0; i < 40; i++ {
+		updateStones(&stones)
 		fmt.Println("iteration ", i)
 	}
 
