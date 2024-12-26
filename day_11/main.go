@@ -111,7 +111,7 @@ func updateStones(stones *Stones) *Stones {
 
 func main() {
 	// defer profile.Start().Stop()
-	input, err := libaoc.GrabInput("input.txt")
+	input, err := libaoc.GrabInput("sample_input.txt")
 
 	if err != nil {
 		log.Fatal(err)
@@ -121,7 +121,7 @@ func main() {
 
 	fmt.Println(stones)
 	stones_ptr := &stones
-	for i := 0; i < 75; i++ {
+	for i := 0; i < 40; i++ {
 		stones_ptr = updateStones(stones_ptr)
 		fmt.Println("iteration ", i)
 	}
