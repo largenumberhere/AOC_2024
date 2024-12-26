@@ -10,8 +10,6 @@ import (
 	libaoc "github.com/largenumberhere/AOC_2024/aoc_lib"
 )
 
-type Stones []string
-
 func removeLeadingZeros(integer *string) {
 	zeros := 0
 	for i := 0; i < len(*integer); i++ {
@@ -82,7 +80,7 @@ func createUpdateStoneRoutine(stone *string, id int, output chan UpdateResult) {
 	output <- updateStoneConcurrent(stone, id)
 }
 
-func updateStones(stones *Stones) *Stones {
+func updateStones(stones *[]string) *[]string {
 	outputs := make(chan UpdateResult, len(*stones))
 
 	for i := len(*stones) - 1; i >= 0; i-- {
@@ -117,7 +115,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stones := Stones(strings.Split(input, " "))
+	stones := strings.Split(input, " ")
 
 	fmt.Println(stones)
 	stones_ptr := &stones
