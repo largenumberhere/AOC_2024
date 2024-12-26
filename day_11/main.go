@@ -122,8 +122,8 @@ func updateStones(stones *[]string) {
 		startIndex := 0
 		for i := 0; i < numCores; i++ {
 			nStonesToProcess := nStonesToProcessPerGoroutine
-			if i == numCores - 1 { // At the last iteration, process all remaining stones
-				nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine * (numCores - 1)
+			if i == numCores-1 { // At the last iteration, process all remaining stones
+				nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine*(numCores-1)
 			}
 
 			wg.Add(1)
