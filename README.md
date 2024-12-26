@@ -1,10 +1,10 @@
-# Advent iof code 2024
+# Advent of code 2024
 
 My solutions to some [advent of code 2024](https://adventofcode.com/2024) problems.
 This year the solutions are all written in [GO](https://go.dev/), a high level procedural programming language. 
 
 My consistency and correctness has improved dramatically compared to my previous experience.
-By christmas day 2024, I completed the following days. (`a` referrs to part one, `b` referrs to part 2)
+By christmas day 2024, I completed the following days. (`a` refers to part one, `b` refers to part 2)
 - 1a
 - 2a, 2b 
 - 3a, 3b,
@@ -21,7 +21,7 @@ By christmas day 2024, I completed the following days. (`a` referrs to part one,
 - 25a
 
 ### Try it out
-Each day has its corrosponding `day_` folder. Eg [day_1](day_1/). I do not condone cheating, **Do not use my code to solve the puzzles for you**. However, if you have completed your own solution and would like to compare approaches:
+Each day has its corresponding `day_` folder. Eg [day_1](day_1/). I do not condone cheating, **Do not use my code to solve the puzzles for you**. However, if you have completed your own solution and would like to compare approaches:
 1. Open a terminal
 2. Clone this repository
 3. Install the go compiler
