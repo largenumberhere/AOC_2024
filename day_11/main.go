@@ -155,108 +155,154 @@ func updateStone(stone int, out1 *int, out2 *int) bool {
 	}
 }
 
-func updateStoneConcurrent(stone *int, id int) UpdateResult {
+func updateStoneConcurrent(stone int) UpdateResult {
 	var out1 int
 	var out2 int
-	used_out2 := updateStone(*stone, &out1, &out2)
+	used_out2 := updateStone(stone, &out1, &out2)
 
 	if used_out2 {
-		return UpdateResult2(out1, out2, id)
+		return UpdateResult2(stone, out1, out2)
 	} else {
-		return UpdateResult1(out1, id)
+		return UpdateResult1(stone, out1)
 	}
 }
 
-func UpdateResult1(stone1 int, id int) UpdateResult {
+func UpdateResult1(stone_in int, stone1 int) UpdateResult {
 	return UpdateResult{
+		stone_in:   stone_in,
 		stone1:     stone1,
-		id:         id,
 		has_stone2: false,
 	}
 }
 
-func UpdateResult2(stone1 int, stone2 int, id int) UpdateResult {
+func UpdateResult2(stone_in int, stone1 int, stone2 int) UpdateResult {
 	return UpdateResult{
+		stone_in:   stone_in,
 		stone1:     stone1,
 		new_stone2: stone2,
-		id:         id,
 		has_stone2: true,
 	}
 }
 
 type UpdateResult struct {
+	stone_in   int
 	stone1     int
 	new_stone2 int
 	id         int
 	has_stone2 bool
 }
 
-func createUpdateStoneRoutine(stone *int, id int, output chan UpdateResult) {
-	output <- updateStoneConcurrent(stone, id)
-}
+// func processStones(stones *[]int, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
+// 	for i := 0; i < nStonesToProcess; i++ {
+// 		index := startIndex + i
 
-func processStones(stones *[]int, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
-	for i := 0; i < nStonesToProcess; i++ {
-		index := startIndex + i
+// 		var out1 int
+// 		var out2 int
+// 		used_out2 := updateStone((*stones)[index], &out1, &out2)
+// 		if used_out2 {
+// 			(*results)[index] = UpdateResult2(out1, out2, index)
+// 		} else {
+// 			(*results)[index] = UpdateResult1(out1, index)
+// 		}
+// 	}
 
-		var out1 int
-		var out2 int
-		used_out2 := updateStone((*stones)[index], &out1, &out2)
-		if used_out2 {
-			(*results)[index] = UpdateResult2(out1, out2, index)
-		} else {
-			(*results)[index] = UpdateResult1(out1, index)
-		}
-	}
-
-	wg.Done()
-}
+// 	wg.Done()
+// }
 
 var numCores = runtime.NumCPU()
 
-func updateStones(stones *[]int) {
-	outputs := make(chan UpdateResult, len(*stones))
-	results := make([]UpdateResult, len(*stones))
+func updateStones(stones *map[int]int) {
+	outputs := make(chan UpdateResult, 0)
+	// results := make([]UpdateResult, countStones(*stones))
 
 	// If we would only start 1 goroutine per core anyway, use the old method
-	if len(*stones) < numCores {
-		for i := len(*stones) - 1; i >= 0; i-- {
-			go createUpdateStoneRoutine(&(*stones)[i], i, outputs)
-		}
+	// if countStones(*stones) < numCores {
 
-		for i := 0; i < len(*stones); i++ {
-			out := <-outputs
-			results[out.id] = out
-		}
-	} else {
-		// Otherwise, split the work up into N goroutines where N is the core count of your CPU
-		var wg sync.WaitGroup
+	routines := 0
+	for key, count := range *stones {
+		for i := 0; i < count; i++ {
+			waits := sync.WaitGroup{}
+			for cpu := 0; cpu < numCores; cpu++ {
+				waits.Add(1)
+				go func(outputs chan UpdateResult, key int, waits *sync.WaitGroup) {
+					outputs <- updateStoneConcurrent(key)
+					waits.Done()
+				}(outputs, key, &waits)
 
-		nStonesToProcessPerGoroutine := len(*stones) / numCores
-		startIndex := 0
-		for i := 0; i < numCores; i++ {
-			nStonesToProcess := nStonesToProcessPerGoroutine
-			if i == numCores-1 { // At the last iteration, process all remaining stones
-				nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine*(numCores-1)
+				routines += 1
 			}
 
-			wg.Add(1)
-			go processStones(stones, startIndex, nStonesToProcess, &results, &wg)
-			startIndex += nStonesToProcess
+			waits.Wait()
+
+		}
+	}
+
+	for i := 0; i < routines; i++ {
+		result := <-outputs
+
+		// if stone has been replaced, remove input stone
+		if result.stone1 != result.stone_in {
+			(*stones)[result.stone_in] -= 1
 		}
 
-		wg.Wait()
+		// add new stone
+		_, key_exists := (*stones)[result.stone1]
+		if !key_exists {
+			(*stones)[result.stone1] = 0
+		}
+
+		(*stones)[result.stone1] += 1
+
+		// add new stone if any
+		if result.has_stone2 {
+			_, key_exists := (*stones)[result.new_stone2]
+			if !key_exists {
+				(*stones)[result.new_stone2] = 0
+			}
+
+			(*stones)[result.new_stone2] += 1
+		}
+
 	}
+
+	//panic("todo")
+	// Otherwise, split the work up into N goroutines where N is the core count of your CPU
+	// var wg sync.WaitGroup
+
+	// nStonesToProcessPerGoroutine := len(*stones) / numCores
+	// startIndex := 0
+	// for i := 0; i < numCores; i++ {
+	// 	nStonesToProcess := nStonesToProcessPerGoroutine
+	// 	if i == numCores-1 { // At the last iteration, process all remaining stones
+	// 		nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine*(numCores-1)
+	// 	}
+
+	// 	wg.Add(1)
+	// 	go processStones(stones, startIndex, nStonesToProcess, &results, &wg)
+	// 	startIndex += nStonesToProcess
+	// }
+
+	// wg.Wait()
+	// }
 
 	// why is this not needed???
 	// slices.SortFunc(results, func(a UpdateResult, b UpdateResult) int { return a.id - b.id })
 
-	for i := len(*stones) - 1; i >= 0; i-- {
-		(*stones)[i] = results[i].stone1
-		if results[i].has_stone2 {
-			*stones = append(*stones, results[i].new_stone2)
-		}
+	// for i := len(*stones) - 1; i >= 0; i-- {
+	// 	(*stones)[i] = results[i].stone1
+	// 	if results[i].has_stone2 {
+	// 		*stones = append(*stones, results[i].new_stone2)
+	// 	}
+	// }
+}
+
+func countStones(hashmap map[int]int) int {
+	total := 0
+	for _, count := range hashmap {
+		total += count
 	}
+
+	return total
 }
 
 func main() {
@@ -280,12 +326,18 @@ func main() {
 		stone_ints = append(stone_ints, stone_int)
 	}
 
-	fmt.Println(stone_ints)
-	for i := 0; i < 45; i++ {
-		updateStones(&stone_ints)
+	// convert to hashmap
+	stone_map := make(map[int]int, 0)
+	for _, stone_int := range stone_ints {
+		stone_map[stone_int] = 1
+	}
+
+	fmt.Println(stone_map)
+	for i := 0; i < 75; i++ {
+		updateStones(&stone_map)
 		fmt.Println("iteration ", i)
 	}
 
-	// fmt.Println("stones: ", stones)
-	fmt.Println("stones count: ", len(stone_ints))
+	fmt.Println("stones: ", stone_map)
+	fmt.Println("stones count: ", countStones(stone_map))
 }
