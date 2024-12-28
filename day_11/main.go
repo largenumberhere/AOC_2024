@@ -177,9 +177,27 @@ func (stones *Stones) Insert(item int) {
 	bag.Insert(item)
 }
 
+func (stones *Stones) InsertCount(item int, count int) {
+	bag := (*Bag[int])(stones)
+
+	bag.InsertCount(item, count)
+}
+
 func (stones *Stones) Remove(item int) (int, bool) {
 	bag := (*Bag[int])(stones)
 	return bag.Remove(item)
+}
+
+func (stones *Stones) RemoveCount(item int, count int) (int, int) {
+
+	bag := (*Bag[int])(stones)
+	item, given := bag.RemoveCount(item, count)
+
+	if given != count {
+		panic("some removals failed")
+	}
+
+	return item, count
 }
 
 func (stones *Stones) Replace(item int, with int) bool {
@@ -218,6 +236,15 @@ func (bag *Bag[T]) Insert(item T) {
 	bag.inner[item] += 1
 }
 
+func (bag *Bag[T]) InsertCount(item T, count int) {
+	_, ok := bag.inner[item]
+	if !ok {
+		bag.inner[item] = 0
+	}
+
+	bag.inner[item] += count
+}
+
 // Remove one of the given item from the bag
 func (bag *Bag[T]) Remove(item T) (T, bool) {
 	_, ok := bag.inner[item]
@@ -233,6 +260,21 @@ func (bag *Bag[T]) Remove(item T) (T, bool) {
 	}
 
 	return item, true
+}
+
+func (bag *Bag[T]) RemoveCount(item T, count int) (T, int) {
+	count_existing, ok := bag.inner[item]
+
+	if !ok {
+		var defaultT T
+		return defaultT, 0
+	}
+
+	can_remove := min(count, count_existing)
+	count_existing -= can_remove
+	bag.inner[item] = count_existing
+
+	return item, can_remove
 }
 
 func (bag *Bag[T]) Replace(item T, with T) bool {
@@ -307,23 +349,6 @@ func (bag *Bag[T]) Format(formatFunc func(T) string) string {
 	return buff.String()
 }
 
-// func processStones(stones *[]int, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
-// 	for i := 0; i < nStonesToProcess; i++ {
-// 		index := startIndex + i
-
-// 		var out1 int
-// 		var out2 int
-// 		used_out2 := updateStone((*stones)[index], &out1, &out2)
-// 		if used_out2 {
-// 			(*results)[index] = UpdateResult2(out1, out2, index)
-// 		} else {
-// 			(*results)[index] = UpdateResult1(out1, index)
-// 		}
-// 	}
-
-// 	wg.Done()
-// }
-
 var numCores = runtime.NumCPU()
 
 type Tuple struct {
@@ -366,8 +391,8 @@ func updateStones(stones *Stones) {
 	} else {
 		wg := sync.WaitGroup{}
 
-		inputs := make(chan Tuple, 100)
-		outputs := make(chan UpdateResult, 100)
+		inputs := make(chan Tuple, 100000)
+		outputs := make(chan UpdateResult, 10000)
 
 		// spin up channels
 		for range numCores {
@@ -376,8 +401,6 @@ func updateStones(stones *Stones) {
 				defer wg.Done()
 
 				for input_tuple := range inputs {
-					// input_tuple := <-inputs
-
 					result := updateStoneConcurrent(input_tuple.a)
 					result.count = input_tuple.b
 
@@ -390,6 +413,7 @@ func updateStones(stones *Stones) {
 		for key, count := range stones.UniqueItems() {
 			inputs <- Tuple{a: key, b: count}
 		}
+
 		close(inputs)
 
 		go func() {
@@ -399,30 +423,26 @@ func updateStones(stones *Stones) {
 
 		// save the results
 		for result := range outputs {
-			for i := 0; i < result.count; i++ {
-				stones.Replace(result.stone_in, result.stone_out1)
 
-				if result.has_stone_out2 {
-					stones.Insert(result.stone_out2)
-				}
+			if result.stone_in != result.stone_out1 {
+				stones.RemoveCount(result.stone_in, result.count)
+				stones.InsertCount(result.stone_out1, result.count)
+			}
+
+			//stones.Replace(result.stone_in, result.stone_out1)
+			if result.has_stone_out2 {
+				stones.InsertCount(result.stone_out2, result.count)
 			}
 		}
 
 	}
 }
 
-func countStones(hashmap map[int]int) int {
-	total := 0
-	for _, count := range hashmap {
-		total += count
-	}
-
-	return total
-}
-
 func main() {
+	fmt.Println("cores detected: ", numCores)
+
 	defer profile.Start().Stop()
-	input, err := libaoc.GrabInput("sample_input.txt")
+	input, err := libaoc.GrabInput("input.txt")
 
 	if err != nil {
 		log.Fatal(err)
@@ -449,7 +469,7 @@ func main() {
 
 	fmt.Println(stones)
 	previous_time := time.Now()
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 75; i++ {
 		updateStones(stones)
 		duration := time.Since(previous_time)
 
