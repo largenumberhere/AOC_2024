@@ -1,15 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"iter" // requires go 1.23
 	"log"
 	"math"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	libaoc "github.com/largenumberhere/AOC_2024/aoc_lib"
+	"github.com/pkg/profile"
 )
 
 // func removeLeadingZeros(integer *string) {
@@ -60,29 +64,6 @@ func intPow(base int, exponent int) int {
 	// return out
 }
 
-/*
-	static STONE_T left_half(STONE_T value, int length) {
-	   STONE_T vin = value;
-	    // discard first half
-	    for (int i = 0; i < (length/2); i++) {
-	        value /=10;
-	    }
-
-
-	    STONE_T to = 0;
-	    STONE_T mul = 0;
-	    for (int i = 0; (i < (length/2)) && (value!=0) ;i++) {
-	        // pop off last digit
-	        STONE_T digit = value % 10;
-	        value /= 10;
-	        to = to + (digit * (size_t)pow(10, mul));
-	        mul ++;
-
-	    }
-
-	    return to;
-	}
-*/
 func stoneLeft(stone int, stone_length int) int {
 	input := stone
 	for i := 0; i < stone_length/2; i++ {
@@ -101,22 +82,6 @@ func stoneLeft(stone int, stone_length int) int {
 	return to
 }
 
-/*
-	static STONE_T right_half(STONE_T value, int length) {
-	    STONE_T to = 0;
-	    STONE_T mul = 0;
-	    for (int i = 0; (i < (length/2)) && (value!=0) ;i++) {
-	        // pop off last digit
-	        STONE_T digit = value % 10;
-	        value /= 10;
-	        to = to + (digit * pow(10, mul));
-	        mul ++;
-
-	    }
-
-	    return to;
-	}
-*/
 func stoneRight(stone int, stone_length int) int {
 	input := stone
 
@@ -137,8 +102,6 @@ func updateStone(stone int, out1 *int, out2 *int) bool {
 		*out1 = 1
 		return false
 	} else if stoneLen(stone)%2 == 0 {
-		// midpoint := stoneLen(*stone) / 2
-
 		stone_length := stoneLen(stone)
 		left := stoneLeft(stone, stone_length)
 		right := stoneRight(stone, stone_length)
@@ -161,39 +124,187 @@ func updateStoneConcurrent(stone int) UpdateResult {
 	used_out2 := updateStone(stone, &out1, &out2)
 
 	if used_out2 {
-		return UpdateResult2(stone, out1, out2)
+		return UpdateResult2(stone, out1, out2, 1)
 	} else {
-		return UpdateResult1(stone, out1)
+		return UpdateResult1(stone, out1, 1)
 	}
 }
 
-func UpdateResult1(stone_in int, stone1 int) UpdateResult {
+func UpdateResult1(stone_in int, stone1 int, count int) UpdateResult {
 	return UpdateResult{
-		is_valid:   true,
-		stone_in:   stone_in,
-		stone1:     stone1,
-		has_stone2: false,
+		stone_in:       stone_in,
+		stone_out1:     stone1,
+		has_stone_out2: false,
+		count:          count,
 	}
 }
 
-func UpdateResult2(stone_in int, stone1 int, stone2 int) UpdateResult {
+func UpdateResult2(stone_in int, stone1 int, stone2 int, count int) UpdateResult {
 	return UpdateResult{
-		is_valid:   true,
-		stone_in:   stone_in,
-		stone1:     stone1,
-		new_stone2: stone2,
-		has_stone2: true,
+		stone_in:       stone_in,
+		stone_out1:     stone1,
+		stone_out2:     stone2,
+		has_stone_out2: true,
+		count:          count,
 	}
 }
 
 type UpdateResult struct {
-	is_valid   bool
-	stone_in   int
-	stone1     int
-	new_stone2 int
-	id         int
-	has_stone2 bool
-	count      int
+	stone_in       int
+	stone_out1     int
+	stone_out2     int
+	has_stone_out2 bool
+	count          int
+}
+
+type Stones Bag[int]
+
+func (stones Stones) String() string {
+	bag := (Bag[int])(stones)
+
+	bag_str := bag.Format(func(i int) string { return strconv.Itoa(i) })
+	return bag_str
+}
+
+func NewStones() *Stones {
+	bag := NewBag[int]()
+	return (*Stones)(bag)
+}
+
+func (stones *Stones) Insert(item int) {
+	bag := (*Bag[int])(stones)
+
+	bag.Insert(item)
+}
+
+func (stones *Stones) Remove(item int) (int, bool) {
+	bag := (*Bag[int])(stones)
+	return bag.Remove(item)
+}
+
+func (stones *Stones) Replace(item int, with int) bool {
+	bag := (*Bag[int])(stones)
+	return bag.Replace(item, with)
+}
+
+func (stones Stones) Items() iter.Seq[int] {
+	bag := (Bag[int])(stones)
+
+	return bag.Items()
+}
+
+func (stones Stones) UniqueItems() iter.Seq2[int, int] {
+	bag := (Bag[int])(stones)
+
+	return bag.UniqueItems()
+}
+
+func (stones *Stones) Count() int {
+	bag := (*Bag[int])(stones)
+	return bag.Count()
+}
+
+type Bag[T1 comparable] struct {
+	inner map[T1]int
+}
+
+// Insert one of the given item into the bag
+func (bag *Bag[T]) Insert(item T) {
+	_, ok := bag.inner[item]
+	if !ok {
+		bag.inner[item] = 0
+	}
+
+	bag.inner[item] += 1
+}
+
+// Remove one of the given item from the bag
+func (bag *Bag[T]) Remove(item T) (T, bool) {
+	_, ok := bag.inner[item]
+	if !ok {
+		var defaultT T
+		return defaultT, false
+	}
+
+	bag.inner[item] -= 1
+
+	if bag.inner[item] == 0 {
+		delete(bag.inner, item)
+	}
+
+	return item, true
+}
+
+func (bag *Bag[T]) Replace(item T, with T) bool {
+	// no-op
+	if item == with {
+		return true
+	}
+
+	_, ok := bag.Remove(item)
+	if !ok {
+		return false
+	}
+
+	bag.Insert(with)
+	return true
+}
+
+func (bag *Bag[T]) Count() int {
+	tally := 0
+	for _, count := range bag.inner {
+		tally += count
+	}
+
+	return tally
+}
+
+func NewBag[T comparable]() *Bag[T] {
+	hashmap := make(map[T]int)
+	bag := Bag[T]{
+		inner: hashmap,
+	}
+
+	return &bag
+}
+
+func (bag *Bag[T]) Items() iter.Seq[T] {
+	return func(yield func(T) bool) {
+		for item, count := range bag.inner {
+			for i := 0; i < count; i++ {
+				if !yield(item) {
+					return
+				}
+			}
+		}
+	}
+}
+
+func (bag *Bag[T]) UniqueItems() iter.Seq2[T, int] {
+	return func(yield func(T, int) bool) {
+		for item, count := range bag.inner {
+			if !yield(item, count) {
+				return
+
+			}
+		}
+	}
+}
+
+func (bag *Bag[T]) Format(formatFunc func(T) string) string {
+	buff := bytes.Buffer{}
+
+	buff.WriteString("Bag {")
+	for item, count := range (*bag).UniqueItems() {
+		buff.WriteString("\n    ")
+		buff.WriteString(formatFunc(item))
+		buff.WriteString(": ")
+		buff.WriteString(strconv.Itoa(count))
+
+	}
+	buff.WriteString("\n}\n")
+
+	return buff.String()
 }
 
 // func processStones(stones *[]int, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
@@ -215,22 +326,25 @@ type UpdateResult struct {
 
 var numCores = runtime.NumCPU()
 
-func updateStones(stones *map[int]int) {
+type Tuple struct {
+	a int
+	b int
+}
 
-	if countStones(*stones) <= numCores {
+func updateStones(stones *Stones) {
+	if stones.Count() <= numCores {
 		waits := sync.WaitGroup{}
-		output := make(chan UpdateResult)
-		for key, keys_count := range *stones {
-			for i := 0; i < keys_count; i++ {
+		output := make(chan UpdateResult, 10)
+		for range stones.Items() {
+			waits.Add(1)
+		}
 
-				waits.Add(1)
-				go func(output chan UpdateResult, key int, wg *sync.WaitGroup) {
-					defer wg.Done()
-					output <- updateStoneConcurrent(key)
+		for value := range stones.Items() {
+			go func(output chan UpdateResult, key int, wg *sync.WaitGroup) {
+				defer wg.Done()
+				output <- updateStoneConcurrent(key)
 
-				}(output, key, &waits)
-
-			}
+			}(output, value, &waits)
 		}
 
 		go func() {
@@ -239,77 +353,62 @@ func updateStones(stones *map[int]int) {
 		}()
 
 		for result := range output {
-			// fmt.Println(result)
-			// if stone has been replaced, remove input stone
-			if result.stone1 != result.stone_in {
-				(*stones)[result.stone_in] -= 1
+			// handle stone replacement
+			if result.stone_out1 != result.stone_in {
+				stones.Replace(result.stone_in, result.stone_out1)
 			}
-
-			// initialize entry in map
-			_, key_exists := (*stones)[result.stone1]
-			if !key_exists {
-				(*stones)[result.stone1] = 0
-			}
-
-			(*stones)[result.stone1] += 1
 
 			// add new stone if any
-			if result.has_stone2 {
-				_, key_exists := (*stones)[result.new_stone2]
-				if !key_exists {
-					(*stones)[result.new_stone2] = 0
-				}
-
-				(*stones)[result.new_stone2] += 1
+			if result.has_stone_out2 {
+				stones.Insert(result.stone_out2)
 			}
 		}
 	} else {
-		// otherwise do one job for each key in the map
-		channel := make(chan UpdateResult)
-		waits := sync.WaitGroup{}
-		for key, count := range *stones {
-			waits.Add(1)
-			go func(stone int, count int) {
-				result := updateStoneConcurrent(stone)
-				result.count = count
-				channel <- result
-				waits.Done()
-			}(key, count)
+		wg := sync.WaitGroup{}
+
+		inputs := make(chan Tuple, 100)
+		outputs := make(chan UpdateResult, 100)
+
+		// spin up channels
+		for range numCores {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				for input_tuple := range inputs {
+					// input_tuple := <-inputs
+
+					result := updateStoneConcurrent(input_tuple.a)
+					result.count = input_tuple.b
+
+					outputs <- result
+				}
+			}()
 		}
 
+		// dispatch work
+		for key, count := range stones.UniqueItems() {
+			inputs <- Tuple{a: key, b: count}
+		}
+		close(inputs)
+
 		go func() {
-			waits.Wait()
-			close(channel)
+			wg.Wait()
+			close(outputs)
 		}()
 
-		// add the results
-		for result := range channel {
+		// save the results
+		for result := range outputs {
 			for i := 0; i < result.count; i++ {
-				if result.stone1 != result.stone_in {
-					(*stones)[result.stone_in] -= 1
-				}
+				stones.Replace(result.stone_in, result.stone_out1)
 
-				// initialize entry in map
-				_, key_exists := (*stones)[result.stone1]
-				if !key_exists {
-					(*stones)[result.stone1] = 0
-				}
-
-				(*stones)[result.stone1] += 1
-
-				// add new stone if any
-				if result.has_stone2 {
-					_, key_exists := (*stones)[result.new_stone2]
-					if !key_exists {
-						(*stones)[result.new_stone2] = 0
-					}
-
-					(*stones)[result.new_stone2] += 1
+				if result.has_stone_out2 {
+					stones.Insert(result.stone_out2)
 				}
 			}
 		}
-	}
 
+	}
 }
 
 func countStones(hashmap map[int]int) int {
@@ -322,7 +421,7 @@ func countStones(hashmap map[int]int) int {
 }
 
 func main() {
-	// defer profile.Start().Stop()
+	defer profile.Start().Stop()
 	input, err := libaoc.GrabInput("sample_input.txt")
 
 	if err != nil {
@@ -342,18 +441,23 @@ func main() {
 		stone_ints = append(stone_ints, stone_int)
 	}
 
-	// convert to hashmap
-	stone_map := make(map[int]int, 0)
+	// convert to stones
+	stones := NewStones()
 	for _, stone_int := range stone_ints {
-		stone_map[stone_int] = 1
+		stones.Insert(stone_int)
 	}
 
-	fmt.Println(stone_map)
-	for i := 0; i < 75; i++ {
-		updateStones(&stone_map)
-		fmt.Println("iteration ", i)
+	fmt.Println(stones)
+	previous_time := time.Now()
+	for i := 0; i < 50; i++ {
+		updateStones(stones)
+		duration := time.Since(previous_time)
+
+		fmt.Println("iteration ", i+1, " took", duration)
+
+		previous_time = time.Now()
 	}
 
-	fmt.Println("stones: ", stone_map)
-	fmt.Println("stones count: ", countStones(stone_map))
+	fmt.Println("stones: ", stones)
+	fmt.Println("stones count: ", stones.Count())
 }
