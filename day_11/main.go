@@ -169,6 +169,7 @@ func updateStoneConcurrent(stone int) UpdateResult {
 
 func UpdateResult1(stone_in int, stone1 int) UpdateResult {
 	return UpdateResult{
+		is_valid:   true,
 		stone_in:   stone_in,
 		stone1:     stone1,
 		has_stone2: false,
@@ -177,6 +178,7 @@ func UpdateResult1(stone_in int, stone1 int) UpdateResult {
 
 func UpdateResult2(stone_in int, stone1 int, stone2 int) UpdateResult {
 	return UpdateResult{
+		is_valid:   true,
 		stone_in:   stone_in,
 		stone1:     stone1,
 		new_stone2: stone2,
@@ -185,11 +187,13 @@ func UpdateResult2(stone_in int, stone1 int, stone2 int) UpdateResult {
 }
 
 type UpdateResult struct {
+	is_valid   bool
 	stone_in   int
 	stone1     int
 	new_stone2 int
 	id         int
 	has_stone2 bool
+	count      int
 }
 
 // func processStones(stones *[]int, startIndex, nStonesToProcess int, results *[]UpdateResult, wg *sync.WaitGroup) {
@@ -212,88 +216,100 @@ type UpdateResult struct {
 var numCores = runtime.NumCPU()
 
 func updateStones(stones *map[int]int) {
-	outputs := make(chan UpdateResult, 0)
-	// results := make([]UpdateResult, countStones(*stones))
 
-	// If we would only start 1 goroutine per core anyway, use the old method
-	// if countStones(*stones) < numCores {
+	if countStones(*stones) <= numCores {
+		waits := sync.WaitGroup{}
+		output := make(chan UpdateResult)
+		for key, keys_count := range *stones {
+			for i := 0; i < keys_count; i++ {
 
-	routines := 0
-	for key, count := range *stones {
-		for i := 0; i < count; i++ {
-			waits := sync.WaitGroup{}
-			for cpu := 0; cpu < numCores; cpu++ {
 				waits.Add(1)
-				go func(outputs chan UpdateResult, key int, waits *sync.WaitGroup) {
-					outputs <- updateStoneConcurrent(key)
-					waits.Done()
-				}(outputs, key, &waits)
+				go func(output chan UpdateResult, key int, wg *sync.WaitGroup) {
+					defer wg.Done()
+					output <- updateStoneConcurrent(key)
 
-				routines += 1
+				}(output, key, &waits)
+
 			}
+		}
 
+		go func() {
 			waits.Wait()
+			close(output)
+		}()
 
-		}
-	}
-
-	for i := 0; i < routines; i++ {
-		result := <-outputs
-
-		// if stone has been replaced, remove input stone
-		if result.stone1 != result.stone_in {
-			(*stones)[result.stone_in] -= 1
-		}
-
-		// add new stone
-		_, key_exists := (*stones)[result.stone1]
-		if !key_exists {
-			(*stones)[result.stone1] = 0
-		}
-
-		(*stones)[result.stone1] += 1
-
-		// add new stone if any
-		if result.has_stone2 {
-			_, key_exists := (*stones)[result.new_stone2]
-			if !key_exists {
-				(*stones)[result.new_stone2] = 0
+		for result := range output {
+			// fmt.Println(result)
+			// if stone has been replaced, remove input stone
+			if result.stone1 != result.stone_in {
+				(*stones)[result.stone_in] -= 1
 			}
 
-			(*stones)[result.new_stone2] += 1
+			// initialize entry in map
+			_, key_exists := (*stones)[result.stone1]
+			if !key_exists {
+				(*stones)[result.stone1] = 0
+			}
+
+			(*stones)[result.stone1] += 1
+
+			// add new stone if any
+			if result.has_stone2 {
+				_, key_exists := (*stones)[result.new_stone2]
+				if !key_exists {
+					(*stones)[result.new_stone2] = 0
+				}
+
+				(*stones)[result.new_stone2] += 1
+			}
+		}
+	} else {
+		// otherwise do one job for each key in the map
+		channel := make(chan UpdateResult)
+		waits := sync.WaitGroup{}
+		for key, count := range *stones {
+			waits.Add(1)
+			go func(stone int, count int) {
+				result := updateStoneConcurrent(stone)
+				result.count = count
+				channel <- result
+				waits.Done()
+			}(key, count)
 		}
 
+		go func() {
+			waits.Wait()
+			close(channel)
+		}()
+
+		// add the results
+		for result := range channel {
+			for i := 0; i < result.count; i++ {
+				if result.stone1 != result.stone_in {
+					(*stones)[result.stone_in] -= 1
+				}
+
+				// initialize entry in map
+				_, key_exists := (*stones)[result.stone1]
+				if !key_exists {
+					(*stones)[result.stone1] = 0
+				}
+
+				(*stones)[result.stone1] += 1
+
+				// add new stone if any
+				if result.has_stone2 {
+					_, key_exists := (*stones)[result.new_stone2]
+					if !key_exists {
+						(*stones)[result.new_stone2] = 0
+					}
+
+					(*stones)[result.new_stone2] += 1
+				}
+			}
+		}
 	}
 
-	//panic("todo")
-	// Otherwise, split the work up into N goroutines where N is the core count of your CPU
-	// var wg sync.WaitGroup
-
-	// nStonesToProcessPerGoroutine := len(*stones) / numCores
-	// startIndex := 0
-	// for i := 0; i < numCores; i++ {
-	// 	nStonesToProcess := nStonesToProcessPerGoroutine
-	// 	if i == numCores-1 { // At the last iteration, process all remaining stones
-	// 		nStonesToProcess = len(*stones) - nStonesToProcessPerGoroutine*(numCores-1)
-	// 	}
-
-	// 	wg.Add(1)
-	// 	go processStones(stones, startIndex, nStonesToProcess, &results, &wg)
-	// 	startIndex += nStonesToProcess
-	// }
-
-	// wg.Wait()
-	// }
-
-	// why is this not needed???
-	// slices.SortFunc(results, func(a UpdateResult, b UpdateResult) int { return a.id - b.id })
-
-	// for i := len(*stones) - 1; i >= 0; i-- {
-	// 	(*stones)[i] = results[i].stone1
-	// 	if results[i].has_stone2 {
-	// 		*stones = append(*stones, results[i].new_stone2)
-	// 	}
-	// }
 }
 
 func countStones(hashmap map[int]int) int {
