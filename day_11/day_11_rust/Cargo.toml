@@ -1,0 +1,7 @@
+[package]
+name = "day_11_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hashbag = "0.1.12"
