@@ -1,4 +1,3 @@
-use std::collections::{HashMap, HashSet};
 use hashbag::HashBag;
 
 fn digits(mut stone: i64) -> usize {
@@ -13,14 +12,14 @@ fn digits(mut stone: i64) -> usize {
 
 fn stone_left(mut stone: i64) -> i64 {
     let stone_length = digits(stone);
-    for i in 0..stone_length/2 {
+    for _ in 0..stone_length/2 {
         stone /=10;
     }
 
     let mut to = 0;
     let mut mul = 0;
 
-    for i in 0..stone_length/2 {
+    for _ in 0..stone_length/2 {
         if stone == 0  {
             break
         }
@@ -63,10 +62,9 @@ fn evaluate_stone(stone: i64) -> (i64, Option<i64>) {
     return (stone * 2024, None)
 }
 
+
 fn iterate_stone(stones: &mut HashBag<i64>, tmp: &mut HashBag<i64>) {
-    // tmp.clear();
-    // tmp.clone_from(stones);
-    let tmp = stones.clone();
+    tmp.clone_from(stones);
 
     for (stone, count) in tmp.set_iter() {
         let stone = *stone;
@@ -81,7 +79,6 @@ fn iterate_stone(stones: &mut HashBag<i64>, tmp: &mut HashBag<i64>) {
                 panic!("trying to remove too many items")
             }
 
-
             stones.remove_up_to(&stone, count);
             stones.insert_many(result.0, count);
         }
@@ -95,13 +92,14 @@ fn iterate_stone(stones: &mut HashBag<i64>, tmp: &mut HashBag<i64>) {
 
 fn count_stones(bag: &HashBag<i64>) -> u64 {
     let mut tally = 0;
-    for (k, v) in bag.set_iter() {
+    for (_, v) in bag.set_iter() {
         tally += v;
     }
 
     return tally as u64;
 }
 
+#[allow(unused)]    // this is useful in debugging scenarios
 fn print_stones(bag: &HashBag<i64>) {
     println!("Bag {{");
     for (k,v) in bag.set_iter() {
@@ -115,13 +113,14 @@ fn main() {
 
     let stones: [i64; 2] = [125, 17];
 
+
     for stone in stones.into_iter() {
         bag.insert(stone);
     }
 
     let mut tmp = HashBag::new();
     let iterations = 75;
-    for i in 0 .. iterations {
+    for _ in 0 .. iterations {
         iterate_stone(&mut bag, &mut tmp);
     }
 
