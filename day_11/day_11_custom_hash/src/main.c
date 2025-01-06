@@ -523,9 +523,8 @@ int main(void) {
 
     // exit(0);
     StoneWriter sw = StoneWriter_new();
-    STONE_T stones[] = {5910927,0,1,47,261223,94788,545,7771};
     
-    // STONE_T stones[] = {125,17};
+    STONE_T stones[] = {125,17};
     const int stones_len = sizeof(stones) / 8;
 
     StoneWriter_put_array(&sw, stones, stones_len);
