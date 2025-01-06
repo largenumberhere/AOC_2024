@@ -1,0 +1,6 @@
+[
+{
+  "directory": "C:\\Users\\rose\\Documents\\programming\\aoc2024\\day_11\\day_11_c2",
+  "arguments": ["C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\VC\\Tools\\MSVC\\14.42.34433\\bin\\HostX64\\x64\\cl.exe", "/c", "/nologo", "/w", "/std:c11", "/IC:\\Users\\rose\\AppData\\Local\\.xmake\\packages\\s\\stc\\v4.2\\15209ce72c0c4b789e2fe6fb68d9ef1f\\include", "/Fobuild\\.objs\\main\\windows\\x64\\release\\src\\main.c.obj", "src\\main.c"],
+  "file": "src\\main.c"
+}]

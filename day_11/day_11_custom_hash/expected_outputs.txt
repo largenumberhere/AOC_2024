@@ -1,0 +1,18 @@
+# 125, 17 for 75
+```
+STONE_T stones[] = {125,17};
+// ...
+int max_depth = 75;
+```
+count = 65601038650482
+unique = 76
+
+
+# 125, 17 for 25
+```
+STONE_T stones[] = {125,17};
+// ...
+int max_depth = 25;
+```
+count = 55312
+unique = 76
