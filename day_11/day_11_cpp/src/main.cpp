@@ -9,7 +9,7 @@
 #include <unordered_map>
 #define STONE_T int64_t
 #define MAX_KEYS 3875
-#include "../include/hash.hpp"
+
 typedef struct 
 {
     std::unordered_map <STONE_T, int64_t> inner; 

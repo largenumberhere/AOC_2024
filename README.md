@@ -20,6 +20,15 @@ By christmas day 2024, I completed the following days. (`a` refers to part one, 
 - 24a
 - 25a
 
+### Boxing day boom
+After the event ended, I returned to some projects to improve and experiment with my solutions.
+- day_11
+    - `day_11/main.go` completed a go implementation 
+    - `day_11/day_11_c2` completed an array-backed dictionary implementation in C
+    - `day_11/day_11_rust` rewrote solution in rust to compare performace to go and C
+    - `day_11/day_11_custom_hash` implemented an experimental datastructure solution in C 
+    - `day_11/day_11_cpp` ported C solution to C++ to use a professional hashmap implementation
+
 ### Try it out
 Each day has its corresponding `day_` folder. Eg [day_1](day_1/). I do not condone cheating, **Do not use my code to solve the puzzles for you**. However, if you have completed your own solution and would like to compare approaches:
 1. Open a terminal
