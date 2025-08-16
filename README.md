@@ -1,7 +1,7 @@
 # Advent of code 2024
 
 My solutions to some [advent of code 2024](https://adventofcode.com/2024) problems.
-This year the solutions are all written in [GO](https://go.dev/), a high level procedural programming language. 
+This year most solutions are all written in [GO](https://go.dev/), a high level procedural programming language. 
 
 My consistency and correctness has improved dramatically compared to my previous experience.
 By christmas day 2024, I completed the following days. (`a` refers to part one, `b` refers to part 2)
@@ -28,6 +28,11 @@ After the event ended, I returned to some projects to improve and experiment wit
     - `day_11/day_11_rust` rewrote solution in rust to compare performace to go and C
     - `day_11/day_11_custom_hash` implemented an experimental datastructure solution in C 
     - `day_11/day_11_cpp` ported C solution to C++ to use a professional hashmap implementation
+
+### Better late than never
+With more experience behind me, I decided in mid 2025 to review the unsolved problems and made some progress.
+- `day_1/c/main.c` repeated day one, part one this time in the C programming language. use `make` to run it. 
+- `day_23a/cpp/main.cpp` solved the graph nodes connection problem in C++. use `make` to run it
 
 ### Try it out
 Each day has its corresponding `day_` folder. Eg [day_1](day_1/). I do not condone cheating, **Do not use my code to solve the puzzles for you**. However, if you have completed your own solution and would like to compare approaches:
