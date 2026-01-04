@@ -3,36 +3,14 @@ use std::vec::Vec;
 
 type Grid = Vec<Vec<char>>;
 
-#[derive(Clone, Copy)]
-struct Pos {
-    x: isize,
-    y: isize,
-}
-
-impl Pos {
-    fn new_usize(x: usize, y: usize) -> Pos {
-        Pos { x: x as _, y: y as _ }
-    }
-
-    fn new_isize(x: isize, y: isize) -> Pos {
-        Pos { x, y }
-    }
-
-    fn x_usize(self: Self) -> usize {
-        self.x as _
-    }
-
-    fn y_usize(self: Self) -> usize {
-        self.y as _
-    }
-
-}
-
 fn read_file() -> Option<Grid> {
     let mut grid = Vec::new();
 
-    let infile = include_str!("../sample_input.txt");
+    let infile = include_str!("../input.txt");
     for line in infile.lines(){
+        if line.is_empty() {
+            continue;
+        }
         grid.push(Vec::new());
         for chr in line.chars() {
             grid.last_mut()?.push(chr);
@@ -41,7 +19,8 @@ fn read_file() -> Option<Grid> {
 
     return Some(grid);
 }
- 
+
+
 fn debug_grid(grid: &Grid) {
     for row in grid {
         for chr in row {
@@ -53,62 +32,43 @@ fn debug_grid(grid: &Grid) {
 }
 
 
-#[derive(PartialEq)]
-enum JollyFactor {
-    Possibly,
-    NotJolly,
-    MaximallyJolly
+fn checkmas(grid: &Grid, x: usize, y: usize) -> usize {
+    let x = x as isize;
+    let y= y as isize;
+    let mut tally = 0;
+    let xcount = grid[0].len() as isize;
+    let ycount = grid.len() as isize;
+
+    let mas = "XMAS";
+    for dx in -1..=1 {
+        for dy in -1..=1 {
+            for peek in 0..=3 {
+                if dx == 0 && dy == 0 {
+                    continue;
+                }
+
+                let newx = x + (dx * peek);
+                let newy = y + (dy * peek);
+
+                if newy >= ycount  || newx >= xcount || newy < 0 || newx < 0 {
+                    continue;
+                }
+                
+                let value = grid[newy as usize][newx as usize];
+                if value != (mas.as_bytes()[peek as usize] as char) {
+                    break;  // try next coordinate
+                }
+
+                if peek ==3 {
+                    tally += 1;
+                }
+            }
+        }
+    }
+
+
+    return  tally;
 }
-
-struct JollyMachine {
-    jolly_cursor: usize,
-    phrase: Vec<char>,
-    grid: Grid,
-}
-
-
-impl JollyMachine {
-    fn new(grid: Grid) -> JollyMachine {
-        JollyMachine { 
-            jolly_cursor: 0, 
-            phrase: "XMAX".chars().collect(),
-            grid: grid
-        }
-    }
-
-    fn start_section(self: &mut JollyMachine) -> () {
-        self.jolly_cursor = 0;
-    }
-
-    fn end_section(self: &mut Self) -> JollyFactor {
-        if self.jolly_cursor >= self.phrase.len()-1 {
-            return JollyFactor::MaximallyJolly;
-        } else {
-            return  JollyFactor::NotJolly;
-        }
-    }
-    
-    fn is_jolly(self: &mut Self, pos: Pos) -> JollyFactor {
-        if self.jolly_cursor >= self.phrase.len()-1 {
-            self.jolly_cursor = 0;
-            return JollyFactor::MaximallyJolly;
-        }
-
-        let current = self.phrase[self.jolly_cursor];
-        let item = self.grid[pos.y_usize()][pos.x_usize()];
-
-        if item != current {
-            self.jolly_cursor = 0;
-            return JollyFactor::NotJolly;
-        }
-        
-        self.jolly_cursor += 1;
-        return  JollyFactor::Possibly;
-        
-    }
-}
-
-
 
 
 fn main() {
@@ -116,110 +76,16 @@ fn main() {
         .unwrap();
     debug_grid(&grid);
 
-    let minx  = 0 as isize;
-    let miny = 0 as isize;
-    let county = grid.len() as isize;
-    let countx = grid[0].len() as isize;
-    let lastx = countx - 1 as isize;
-    let lasty = county - 1 as isize;
-
-    let mut xmax_tally = 0;
-    
-    /*  Compass
-        NW N NE
-        W  x E
-        SW S SE
-
-        The cardinal directions are actually inverted from the memory layout. North is an increase in y, east is an increase in x, etc.
-     */
-
-    // N
-    {
-        let mut posp = Pos::new_isize(minx, miny);
-        while posp.y < county {
-            let mut machine = JollyMachine::new(grid.clone());
-            machine.start_section();
-            let mut pos2 = posp.clone();
-            while pos2.x < countx  {
-                let jolly = machine.is_jolly(pos2);
-                match jolly {
-                    JollyFactor::Possibly => {},
-                    JollyFactor::NotJolly => {
-                        machine.end_section();
-                    },
-                    JollyFactor::MaximallyJolly => {
-                        xmax_tally += 1;
-                        machine.end_section();
-                        println!("jolly at {} {}", pos2.x, pos2.y);
-                    },
-                };
-
-                println!("{} {}", pos2.x, pos2.y);
-                pos2.x += 1;
+    let mut tally = 0;
+    for y in 0..grid.len() {
+        for x in 0..grid[0].len() {
+            if grid[y][x] == 'X' {
+                let news = checkmas(&grid, x, y);
+                tally += news;
             }
 
-            let jolly = machine.end_section();
-            if jolly == JollyFactor::MaximallyJolly {
-                xmax_tally += 1;
-                println!("jolly at {} {}", pos2.x, pos2.y);
-            }
-
-
-            posp.y += 1;
         }
+    }    
 
-        println!("tally after section 1 {}", xmax_tally);
-    }
-    {
-        // S
-        let mut posp = Pos::new_isize(minx, miny);
-        while posp.y < county {
-            let mut machine = JollyMachine::new(grid.clone());
-            machine.start_section();
-
-            let mut pos2 = Pos::new_isize(lastx, posp.y);
-            while pos2.x >= 0 {
-                let jolly = machine.is_jolly(pos2);
-                match jolly {
-                    JollyFactor::Possibly => {},
-                    JollyFactor::NotJolly => {
-                        machine.end_section();
-                    }
-                    JollyFactor::MaximallyJolly => {
-                        xmax_tally += 1;
-                        machine.end_section();
-                        println!("jolly at {} {}", pos2.x, pos2.y);
-                    }
-                };
-
-                println!("{} {}", pos2.x, pos2.y);
-
-
-                pos2.x -= 1;
-            }
-
-            let jolly = machine.end_section();
-            if jolly == JollyFactor::MaximallyJolly {
-                xmax_tally += 1;
-                println!("jolly at {} {}", pos2.x, pos2.y);
-            }
-
-            posp.y += 1;
-        }
-    
-        println!("tally after section 2 {}", xmax_tally);
-    }
-
-    
-
-
-    // W
-    // E
-
-    // NE
-    // SE
-    // SW
-    // NW
-
-    
+    println!("total = {}", tally);
 }
