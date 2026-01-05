@@ -70,8 +70,7 @@ fn checkmas(grid: &Grid, x: usize, y: usize) -> usize {
     return  tally;
 }
 
-
-fn main() {
+fn part1() {
     let grid = read_file()
         .unwrap();
     debug_grid(&grid);
@@ -88,4 +87,91 @@ fn main() {
     }    
 
     println!("total = {}", tally);
+}
+
+
+fn main() {
+    part2();    
+    
+
+}
+
+fn try_check_direction(vector: (isize, isize), origin: (isize, isize), grid: &Grid) -> bool {
+    let ycount = grid.len() as isize;
+    let xcount = grid[0].len() as isize;
+
+        
+    let message = "MAS";
+
+    let mut count = 0;
+    for lookahead in -1..=1 {
+        let newx = origin.0 + (vector.0 * lookahead);
+        let newy = origin.1 + (vector.1 * lookahead);
+
+        if newx < 0 || newy < 0 || newy >= ycount || newx >= xcount  {
+            // skip out of bounds
+            continue;
+        } 
+
+        let character = grid[newy as usize][newx as usize];
+        let message_n = message.as_bytes()[(lookahead + 1) as usize] as char;
+        if character == message_n {
+            count += 1;
+        }
+
+    }
+
+    if count >= 3 {
+        return  true;
+    }
+
+    return false;
+}
+
+fn checkmas2(grid: &Grid, x: usize, y: usize) -> usize {
+    let x = x as isize;
+    let y = y as isize;
+
+    println!("checking {} {}", x, y);
+    let mut line_count = 0;
+
+    for dx in [-1, 1] {
+        for dy in [-1, 1] {
+            let has_line = try_check_direction((dx, dy), (x, y), grid);   
+            if has_line {
+                line_count += 1;
+            }
+
+            if line_count >= 2 {
+                return  1;
+            }
+        }
+    }
+
+    return  0;
+}
+
+fn part2() {
+    let grid = read_file()
+        .unwrap();
+    debug_grid(&grid);
+
+    let mut tally = 0;
+    for y in 0..grid.len() {
+        for x in 0..grid[0].len() {
+            if grid[y][x] == 'A' {
+                let news = checkmas2(&grid, x, y);
+                tally += news;
+                if tally >= 1 {
+                    println!("cross at {} {}", x, y);
+
+                }
+            }
+
+        }
+    }
+
+    println!("total = {}", tally);
+
+
 }
