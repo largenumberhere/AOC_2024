@@ -1,4 +1,4 @@
-use std::{include_str, usize};
+use std::{include_str, iter, usize};
 use std::vec::Vec;
 
 type Grid = Vec<Vec<char>>;
@@ -70,6 +70,7 @@ fn checkmas(grid: &Grid, x: usize, y: usize) -> usize {
     return  tally;
 }
 
+#[allow(dead_code)]
 fn part1() {
     let grid = read_file()
         .unwrap();
@@ -92,15 +93,12 @@ fn part1() {
 
 fn main() {
     part2();    
-    
-
 }
 
 fn try_check_direction(vector: (isize, isize), origin: (isize, isize), grid: &Grid) -> bool {
     let ycount = grid.len() as isize;
     let xcount = grid[0].len() as isize;
 
-        
     let message = "MAS";
 
     let mut count = 0;
@@ -128,23 +126,43 @@ fn try_check_direction(vector: (isize, isize), origin: (isize, isize), grid: &Gr
     return false;
 }
 
+
 fn checkmas2(grid: &Grid, x: usize, y: usize) -> usize {
     let x = x as isize;
     let y = y as isize;
 
-    println!("checking {} {}", x, y);
     let mut line_count = 0;
+    
+    let values = [-1, 1];
+    let mut cur1 = -1 as isize;
+    let mut cur2 = 0;
+    let iter_diagonal_vectors = iter::from_fn(|| {
+        cur1 += 1;
+        
+        if (cur1 as usize) >= values.len() {
+            cur1 = 0;
+            cur2 += 1;
+        }
 
-    for dx in [-1, 1] {
-        for dy in [-1, 1] {
-            let has_line = try_check_direction((dx, dy), (x, y), grid);   
-            if has_line {
-                line_count += 1;
-            }
+        if cur2 >= values.len() {
+            return None;
+        }
 
-            if line_count >= 2 {
-                return  1;
-            }
+        let left = values[cur1 as usize];
+        let right = values[cur2];
+        return Some((left, right));
+
+    });
+
+
+    for (delta_x , delta_y) in iter_diagonal_vectors {
+        let has_line = try_check_direction((delta_x, delta_y), (x, y), grid);   
+        if has_line {
+            line_count += 1;
+        }
+
+        if line_count >= 2 {
+            return  1;
         }
     }
 
@@ -156,22 +174,33 @@ fn part2() {
         .unwrap();
     debug_grid(&grid);
 
+    let mut iterx = -1 as isize;
+    let mut itery = 0 as isize;
+    let grid_iter = std::iter::from_fn(|| {
+        let ycount = grid.len();
+        let xcount = grid[0].len();
+
+        iterx += 1;
+        if (iterx as usize)  >= xcount {
+            iterx = 0;
+            itery += 1;
+        }
+
+        if (itery as usize) >= ycount {
+            return  None;
+        }
+
+        return Some((iterx as usize, itery as usize));
+    });
+
     let mut tally = 0;
-    for y in 0..grid.len() {
-        for x in 0..grid[0].len() {
-            if grid[y][x] == 'A' {
-                let news = checkmas2(&grid, x, y);
-                tally += news;
-                if tally >= 1 {
-                    println!("cross at {} {}", x, y);
-
-                }
-            }
-
+    for (x, y) in grid_iter {
+        if grid[y][x] == 'A' {
+            let news = checkmas2(&grid, x, y);
+            tally += news;
         }
     }
 
+
     println!("total = {}", tally);
-
-
 }
